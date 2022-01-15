@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -20,7 +21,7 @@ int nMaquinas;
 struct cliente{
     int id;
     bool atendido;
-    String tipo;
+    char tipo;
     int  ascensor;
 };
 
@@ -29,7 +30,6 @@ bool *MaquinasCheckIn;
 int *recepcionistas;
 
 int main(int argc,char *argv[]){
-    
     
     if(argc!=3){
 
@@ -60,15 +60,33 @@ int main(int argc,char *argv[]){
     exit 0;
 }
 
-void nuevoCliente(){
+void nuevoCliente(int signum){
 
+    if(signal(SIGUSR2, nuevoCliente)== SIG_ERR) {
+        perror("\nError en la llamada a la señal\n");  
+        exit(-1);
+    }
+
+    if(signal(SIGUSR1, nuevoCliente)== SIG_ERR) {
+        perror("\nError en la llamada a la señal\n");  
+        exit(-1);
+    }
 
     pthread_mutex_lock(&semaforoColaClientes);
+    
     if(clientesEnRecepcion<recepcionMAX){
         cliente nuevoCliente;
         clientesEnRecepcion++;
         nuevoCliente.id=clientesEnRecepcion;
-        //nuevoCliente.tipo=
+
+        if(signum==SIGUSR1){
+            nuevoCliente.tipo="DEF";
+        }else if(signum==SIGUSR2){
+            nuevoCliente.tipo="VIP"; 
+        }else     if(signum == SIG_ERR) {
+            perror("\nError en la llamada a la señal\n");  
+        }
+
         nuevoCliente.atendido=0;
         nuevoCliente.ascensor=0;
         pthread_t hiloCliente;
@@ -152,10 +170,15 @@ int maquinaLibre(){
 
 
 pid_t gettid(void) {
+
     return syscall(__NR_gettid);
+
 } 
 
+//Escribir mensajes 
+
 void writeLogMessage(char *id, char *msg) {
+
     // Calculamos la hora actual
     time_t now = time(0);
     struct tm *tlocal = localtime(&now);
@@ -165,10 +188,13 @@ void writeLogMessage(char *id, char *msg) {
     logFile = fopen(logFileName, "a");
     fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
     fclose(logFile);
+
 }
 
-//Metodo para calcular numeros aleatorios (
+//Metodo para calcular numeros aleatorios 
 int calculaAleatorios(int min, int max) {
+
     srand(time(NULL));
     return rand() % (max-min+1) + min;
+
 }
