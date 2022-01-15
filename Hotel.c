@@ -16,7 +16,7 @@ pthread_mutex_t semaforoAscensor;
 int ocupacionAscensor;
 pthread_mutex_t semaforoMaquinas;
 int nClientes;
-
+int nMaquinas;
 struct cliente{
     int id;
     bool atendido;
@@ -25,7 +25,7 @@ struct cliente{
 };
 
 bool ascensorEnPlanta;
-int *MaquinasCheckIn;
+bool *MaquinasCheckIn;
 int *recepcionistas;
 
 int main(int argc,char *argv[]){
@@ -40,11 +40,11 @@ int main(int argc,char *argv[]){
 
 
     nClientes=atoi(argv[1]);
-
+    nMaquinas=atoi(argv[2]
     for( int i =0; i<nClientes; ){
 
     }
-    MaquinasCheckIn= (int *) malloc (atoi(argv[2]) * sizeof (int));
+    MaquinasCheckIn= (bool *) malloc (nMaquinas) * sizeof (bool));
     //Se inicializan por defecto todas las maquinas a cero (libres)
 
 
@@ -52,7 +52,7 @@ int main(int argc,char *argv[]){
     int clientesEnRecepcion = 0;
 
     /**
-    *   Los clientes serán asignados como vip o normales aleatoriamente
+    *   Los clientes seran asignados como vip o normales aleatoriamente
     */
     int clientesEnRecepcion = 0;
 
@@ -80,8 +80,74 @@ void nuevoCliente(){
 
 void AccionesCliente (void* nuevoCliente ){
     (cliente *) nuevoCliente;
-    int accion=calculaAleatorios()
+    int maquinaDirecta=calculaAleatorios(1,100);
+    if(accion<=10){
+        //meter todo esto a un metodo directamente para poder pasarlo 
+        //10% va a la maquina directamente
+        do{
+            pthread_mutex_lock(&semaforoMaquinas);
+            int meQuedo;
+        
+            int maquinaAOcupar=maquinaLibre();
 
+            if(maquinaAOcupar!=-1){
+
+                MaquinasCheckIn[maquinaAOcupar]=true;
+                pthread_mutex_unlock(&semaforoMaquinas);
+                sleep(6);
+                meQuedo=2; // no se queda ya esta atendido
+                //iria al ascensor (falta implementar todo eso) si puede se escribiria el log y lo eliminamos
+
+            }else{
+
+                pthread_mutex_unlock(&semaforoMaquinas);
+                sleep(3);
+                meQuedo=calculaAleatorios(1,2);
+                //1 se queda 2 se cansa de esperar
+            }
+
+        }while(meQuedo==1); //repite si se queda si no pasa a buscar cola
+    }else{
+        pthread_mutex_lock(&semaforoColaClientes);
+        if(nuevoCliente.atendido=1){
+            pthread_mutex_unlock(&semaforoColaClientes);
+
+            while(nuevoCliente.atendido==1){
+                //Cuando termine el recepcionista este valor se establecera en 2
+                sleep(2);
+                //comprueba si ha acabado cada 2 secs
+            }
+            //va a coger los ascensores (logs y demas)
+
+
+        }else{
+            pthread_mutex_unlock(&semaforoColaClientes);
+
+            int comportamiento = calculaAleatorios(1,100);
+            if(comportamiento<=20){
+                //vuelve a maquinas
+            }else if(comportamiento<=30){
+                //se va (eliminamos el hilo)
+            }else{
+                int pierdoTurnoPorBaño =calculaAleatorios(1,20);
+                if(pierdoTurnoPorBaño==1){
+                    //pierde el turno por ir al banyo se enfada y se va
+                }
+            }
+
+        }
+
+    }
+    //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
+}
+
+int maquinaLibre(){
+    for(int i=0; i<nMaquinas; i++){
+        if(MaquinasCheckIn[]==false){
+            return i;
+        }
+    }
+    return -1;
 }
 
 
