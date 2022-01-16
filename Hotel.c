@@ -18,6 +18,8 @@ int ocupacionAscensor;
 pthread_mutex_t semaforoMaquinas;
 int nClientes;
 int nMaquinas;
+int *arrayClientes;
+int *arrayMaquinas;
 struct cliente{
     int id;
     bool atendido;
@@ -29,34 +31,94 @@ bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
 
+/*Manejadora del cliente normal*/
+void handle_cNormal(int sig){
+	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+}
+
+/*Manejadora del cliente VIP*/
+void handle_cVIP(int sig){
+	if (signal(SIGUSR2, handle_cVIP) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+}
+
+/*Manejadora para la terminación del programa*/
+void handle_terminar(int sig) {
+	if (signal(SIGINT, handle_terminar) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+}
+
 int main(int argc,char *argv[]){
     
+	/*Comprobación de que el número de argumentos introducidos es el correcto*/
     if(argc!=3){
 
-        printf("Se ha introducido incorrectamente el numero");
+        printf("Se ha introducido incorrectamente el numero de parámetros");
         exit(-1);  
-
     }
 
-
+	/*Paso de los argumentos a int y creación de arrays dinámicos*/
     nClientes=atoi(argv[1]);
-    nMaquinas=atoi(argv[2]
-    for( int i =0; i<nClientes; ){
+    nMaquinas=atoi(argv[2]);
 
+	arrayClientes = (int *)malloc(nClientes * sizeof(int));
+	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
+	
+	/*Enmascaración de señales*/
+	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+
+	if (signal(SIGUSR2, handle_cVIP) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+
+	if (signal(SIGINT, handle_terminar) == SIG_ERR) {
+		perror("Error en la señal signal");
+	
+		exit(-1);
+	}
+
+
+	/*Indica los clientes que son básicos y VIP??*/
+	for( int i =0; i < nClientes; i++){
+			
     }
-    MaquinasCheckIn= (bool *) malloc (nMaquinas) * sizeof (bool));
+
+    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 
-    srand(time(NULL));
     int clientesEnRecepcion = 0;
 
     /**
     *   Los clientes seran asignados como vip o normales aleatoriamente
     */
     
+	/*Se libera la memoria de los arrays dinámicos*/
+	free(arrayClientes);
+	free(arrayMaquinas);
+	free(MaquinasCheckIn);
 
+	/*Esperar por señales de forma infinita*/
+	while(1) { //Imagino
 
+	}
+	
     exit 0;
 }
 
