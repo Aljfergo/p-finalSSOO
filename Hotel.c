@@ -21,7 +21,7 @@ int nMaquinas;
 struct cliente{
     int id;
     bool atendido;
-    char tipo;
+    char tipo [3];
     int  ascensor;
 };
 
@@ -45,7 +45,7 @@ int main(int argc,char *argv[]){
 
     }
     MaquinasCheckIn= (bool *) malloc (nMaquinas) * sizeof (bool));
-    //Se inicializan por defecto todas las maquinas a cero (libres)
+    //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 
     srand(time(NULL));
@@ -54,23 +54,13 @@ int main(int argc,char *argv[]){
     /**
     *   Los clientes seran asignados como vip o normales aleatoriamente
     */
-    int clientesEnRecepcion = 0;
+    
 
 
     exit 0;
 }
 
 void nuevoCliente(int signum){
-
-    if(signal(SIGUSR2, nuevoCliente)== SIG_ERR) {
-        perror("\nError en la llamada a la señal\n");  
-        exit(-1);
-    }
-
-    if(signal(SIGUSR1, nuevoCliente)== SIG_ERR) {
-        perror("\nError en la llamada a la señal\n");  
-        exit(-1);
-    }
 
     pthread_mutex_lock(&semaforoColaClientes);
     
@@ -80,9 +70,9 @@ void nuevoCliente(int signum){
         nuevoCliente.id=clientesEnRecepcion;
 
         if(signum==SIGUSR1){
-            nuevoCliente.tipo="DEF";
+            nuevoCliente.tipo="DEF"; //Default
         }else if(signum==SIGUSR2){
-            nuevoCliente.tipo="VIP"; 
+            nuevoCliente.tipo="VIP"; //VIP
         }else     if(signum == SIG_ERR) {
             perror("\nError en la llamada a la señal\n");  
         }
@@ -102,31 +92,43 @@ void AccionesCliente (void* nuevoCliente ){
     if(accion<=10){
         //meter todo esto a un metodo directamente para poder pasarlo 
         //10% va a la maquina directamente
-        do{
-            pthread_mutex_lock(&semaforoMaquinas);
-            int meQuedo;
+        maquinaAccion(nuevoCliente);
         
-            int maquinaAOcupar=maquinaLibre();
-
-            if(maquinaAOcupar!=-1){
-
-                MaquinasCheckIn[maquinaAOcupar]=true;
-                pthread_mutex_unlock(&semaforoMaquinas);
-                sleep(6);
-                meQuedo=2; // no se queda ya esta atendido
-                //iria al ascensor (falta implementar todo eso) si puede se escribiria el log y lo eliminamos
-
-            }else{
-
-                pthread_mutex_unlock(&semaforoMaquinas);
-                sleep(3);
-                meQuedo=calculaAleatorios(1,2);
-                //1 se queda 2 se cansa de esperar
-            }
-
-        }while(meQuedo==1); //repite si se queda si no pasa a buscar cola
     }else{
-        pthread_mutex_lock(&semaforoColaClientes);
+        
+
+    }
+    //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
+}
+
+void maquinaAccion(void* nuevoCliente){
+    do{
+        pthread_mutex_lock(&semaforoMaquinas);
+        int meQuedo;
+        
+        int maquinaAOcupar=maquinaLibre();
+
+        if(maquinaAOcupar!=-1){
+
+            MaquinasCheckIn[maquinaAOcupar]=true;
+            pthread_mutex_unlock(&semaforoMaquinas);
+            sleep(6);
+            meQuedo=2; // no se queda ya esta atendido
+            //iria al ascensor (falta implementar todo eso) si puede se escribiria el log y lo eliminamos
+
+        }else{
+
+            pthread_mutex_unlock(&semaforoMaquinas);
+            sleep(3);
+            meQuedo=calculaAleatorios(1,2);
+            //1 se queda 2 se cansa de esperar
+        }
+
+    }while(meQuedo==1); //repite si se queda si no pasa a buscar cola
+}
+
+void colaAccion(void *nuevoCliente){
+    pthread_mutex_lock(&semaforoColaClientes);
         if(nuevoCliente.atendido=1){
             pthread_mutex_unlock(&semaforoColaClientes);
 
@@ -143,20 +145,19 @@ void AccionesCliente (void* nuevoCliente ){
 
             int comportamiento = calculaAleatorios(1,100);
             if(comportamiento<=20){
-                //vuelve a maquinas
+                maquinaAccion(nuevoCliente)
+                return;
             }else if(comportamiento<=30){
-                //se va (eliminamos el hilo)
+                pthread_cancel(gettid());
             }else{
                 int pierdoTurnoPorBaño =calculaAleatorios(1,20);
                 if(pierdoTurnoPorBaño==1){
                     //pierde el turno por ir al banyo se enfada y se va
+                    pthread_cancel(gettid());
                 }
             }
 
         }
-
-    }
-    //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
 }
 
 int maquinaLibre(){
@@ -172,7 +173,7 @@ int maquinaLibre(){
 pid_t gettid(void) {
 
     return syscall(__NR_gettid);
-
+    
 } 
 
 //Escribir mensajes 
