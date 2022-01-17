@@ -67,6 +67,9 @@ void handle_terminar(int sig) {
 
 int main(int argc,char *argv[]){
     
+	/*Declaración de los hilos de los recepcionistas*/
+	pthread_t recepcionista1, recepcionista2, recepcionista3;
+
 	/*Comprobación de que el número de argumentos introducidos es el correcto*/
     if(argc!=3){
 
@@ -115,17 +118,42 @@ int main(int argc,char *argv[]){
     /**
     *   Los clientes seran asignados como vip o normales aleatoriamente
     */
-    
-	/*Se libera la memoria de los arrays dinamicos*/
-	free(arrayClientes);
-	free(arrayMaquinas);
-	free(MaquinasCheckIn);
+
+	/*Creación de los hilos de los recepcionistas*/
+    //atributos en principio a NULL (por defecto)
+	if (pthread_create (&recepcionista1, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) { //Comprobación de que el hilo se crea correctamente
+		perror("Error en la creación del hilo");
+		
+		exit (-1);
+	}
+	if (pthread_create (&recepcionista2, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+		perror("Error en la creación del hilo");
+		
+		exit (-1);
+		
+	}
+	if (pthread_create (&recepcionista3, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+		perror("Error en la creación del hilo");
+		
+		exit (-1);
+
+	}
+
+	/*Función join para que el main espera por la ejecución del hilo*/
+	pthread_join(recepcionista1, void **retval/*Valor de retorno, por defecto = NULL*/); 
+	pthread_join(recepcionista2, void **retval/*Valor de retorno, por defecto = NULL*/);
+	pthread_join(recepcionista3, void **retval/*Valor de retorno, por defecto = NULL*/);
 
 	/*Esperar por senales de forma infinita*/
 	while(1) { //Imagino
 
 	}
 	
+	/*Se libera la memoria de los arrays dinámicos*/
+	free(arrayClientes);
+	free(arrayMaquinas);
+	free(MaquinasCheckIn);
+
     exit 0;
 }
 
