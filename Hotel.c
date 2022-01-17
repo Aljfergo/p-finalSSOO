@@ -23,7 +23,7 @@ int *recepcionistas;
 bool *MaquinasCheckIn;
 bool ascensorEnPlanta;
 struct cliente{
-    char id;
+    char id [10];
     bool atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
     char tipo [3];
     int  ascensor;
@@ -35,6 +35,14 @@ struct recepcionista{
     char tipo [3];
 }
 
+<<<<<<< HEAD
+=======
+pthread_t *arrayHilosClientes;
+bool ascensorEnPlanta;
+bool *MaquinasCheckIn;
+int *recepcionistas;
+
+>>>>>>> 355fb65ce842793f2cf8c81994939813da67c3f2
 /*Manejadora del cliente normal*/
 void handle_cNormal(int sig){
 	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
@@ -78,10 +86,15 @@ int main(int argc,char *argv[]){
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
+<<<<<<< HEAD
 	arrayClientes = (int *)malloc(nClientes * sizeof(int));
 	recepcionistas = (int *)malloc(/*recepcionistas??*/ * sizeof(int));
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
+=======
+>>>>>>> 355fb65ce842793f2cf8c81994939813da67c3f2
 	
+	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
+	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
 	/*Enmascaración de señales*/
 	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
 		perror("Error en la señal signal");
@@ -149,7 +162,7 @@ int main(int argc,char *argv[]){
 	pthread_join(recepcionista2, void **retval/*Valor de retorno, por defecto = NULL*/);
 	pthread_join(recepcionista3, void **retval/*Valor de retorno, por defecto = NULL*/);
 
-	/*Esperar por señales de forma infinita*/
+	/*Esperar por senales de forma infinita*/
 	while(1) { //Imagino
 
 	}
@@ -167,10 +180,12 @@ void nuevoCliente(int signum){
     pthread_mutex_lock(&semaforoColaClientes);
     
     if(clientesEnRecepcion<recepcionMAX){
-        cliente nuevoCliente;
 
+        cliente nuevoCliente;
         clientesEnRecepcion++;
-        nuevoCliente.id=clientesEnRecepcion;
+        char numeroEnId [3];
+        itoa(clientesEnRecepcion, numeroEnId, 10);
+        nuevoCliente.id=strcat("cliente_",numeroEnId);
 
         if(signum==SIGUSR1){
             nuevoCliente.tipo="DEF"; //Default
@@ -185,9 +200,10 @@ void nuevoCliente(int signum){
 
         colaClientes[clientesEnRecepcion-1]=nuevoCliente;
         pthread_t hiloCliente;
-        pthread_create(&hiloCliente, NULL, AccionesCliente, (void*)clientesEnRecepcion);
+        arrayHilosClientes[clientesEnRecepcion-1]=hiloCliente;
+        pthread_create(&hiloCliente, NULL, AccionesCliente, (void*)nuevoCliente);
         pthread_mutex_unlock(&semaforoColaClientes);
-    
+
     }else{
         pthread_mutex_unlock(&semaforoColaClientes);
         return;
@@ -270,6 +286,16 @@ void colaAccion(void *nuevoCliente){
 }
 
 
+void alAscensor(){
+
+    while(!ascensorEnPlanta){
+        sleep(3);
+    }
+
+
+}
+
+
 void AccionesRecepcionista(void *tipoDeRecepcionista){
     (char *) tipoDeRecepcionista;
     do{
@@ -298,7 +324,7 @@ void AccionesRecepcionista(void *tipoDeRecepcionista){
         //Algun problema
         int tiempoEspera=calculaAleatorios(2,6);
         sleep(tiempoEspera);
-        //Implementar ascensor
+        colaClientes[clienteAtendido].ascensor=1;
     }else{
         //No esta vacunado
         int tiempoEspera=calculaAleatorios(6,10);
