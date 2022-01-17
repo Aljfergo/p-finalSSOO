@@ -38,16 +38,6 @@ bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
 
-/*Manejadora para la terminación del programa*/
-void finalizaPrograma(int sig) {
-	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
-		perror("Error en signal");
-	
-		//Finaliza el programa correctamente
-		exit(-1);
-	}
-}
-
 int main(int argc,char *argv[]){
     
 	/*Declaración de los hilos de los recepcionistas*/
@@ -59,17 +49,21 @@ int main(int argc,char *argv[]){
         printf("Se ha introducido incorrectamente el numero de parámetros");
         exit(-1);  
     }
+	
+	/*Impresión del pid del proceso para enviar las señales*/
+	printf("\nPID = %d\n", getpid());
 
 	/*Paso de los argumentos a int y creación de arrays dinámicos*/
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
-	arrayClientes = (int *)malloc(nClientes * sizeof(int));
-	recepcionistas = (int *)malloc(/*recepcionistas??*/ * sizeof(int));
+	arrayClientes = (int *)malloc(nClientes * sizeof(int)); //Está declarado como "struct cliente"
+	recepcionistas = (int *)malloc(recepcionistas * sizeof(int));
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
 	
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
+
 	/*Enmascaración de señales*/
 	if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
 		perror("Error en signal");
@@ -129,7 +123,7 @@ int main(int argc,char *argv[]){
 	}
 
 	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
-	pthread_join(recepcionista_1, void **retval/*Valor de retorno, por defecto = NULL*/); 
+	pthread_join(recepcionista_1, void **retval/*Valor de retorno, por defecto = NULL*/); //Comprobar que tiene que devolver 
 	pthread_join(recepcionista_2, void **retval/*Valor de retorno, por defecto = NULL*/);
 	pthread_join(recepcionista_3, void **retval/*Valor de retorno, por defecto = NULL*/);
 
@@ -143,7 +137,8 @@ int main(int argc,char *argv[]){
 	free(MaquinasCheckIn);
 	free(recepcionistas);
 
-    exit 0;
+    //exit 0;
+	return 0; //El main termina con return 0 no un exit
 }
 
 void nuevoCliente(int signum){
@@ -381,6 +376,17 @@ int maquinaLibre(){
     return -1;
 }
 
+/*Manejadora para la terminación del programa*/
+void finalizaPrograma(int sig) {
+	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
+		perror("Error en signal");
+	
+		exit(-1);
+	}
+	printf("\nHasta luego...\n");
+
+	exit(0);
+}
 
 pid_t gettid(void) {
 
