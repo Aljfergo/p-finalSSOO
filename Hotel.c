@@ -18,7 +18,7 @@ int ocupacionAscensor;
 pthread_mutex_t semaforoMaquinas;
 int nClientes;
 int nMaquinas;
-int *arrayClientes;
+struct cliente *arrayClientes;
 int *arrayMaquinas;
 struct cliente{
     char id [10];
@@ -163,27 +163,27 @@ void nuevoCliente(int signum){
     
     if(clientesEnRecepcion<recepcionMAX){
 
-        cliente nuevoCliente;
+        struct cliente *nuevoCliente;
         clientesEnRecepcion++;
         char numeroEnId [3];
         itoa(clientesEnRecepcion, numeroEnId, 10);
-        nuevoCliente.id=strcat("cliente_",numeroEnId);
+        nuevoCliente->id=strcat("cliente_",numeroEnId);
 
         if(signum==SIGUSR1){
-            nuevoCliente.tipo="DEF"; //Default
+            nuevoCliente->tipo="DEF"; //Default
         }else if(signum==SIGUSR2){
-            nuevoCliente.tipo="VIP"; //VIP
+            nuevoCliente->tipo="VIP"; //VIP
         }else if(signum == SIG_ERR) {
             perror("\nError en la llamada a la senal\n");  
         }
 
-        nuevoCliente.atendido=0;
-        nuevoCliente.ascensor=0;
+        nuevoCliente->atendido=0;
+        nuevoCliente->ascensor=0;
 
         colaClientes[clientesEnRecepcion-1]=nuevoCliente;
         pthread_t hiloCliente;
         arrayHilosClientes[clientesEnRecepcion-1]=hiloCliente;
-        pthread_create(&hiloCliente, NULL, AccionesCliente, (void*)nuevoCliente);
+        pthread_create(&arrayHilosClientes[clientesEnRecepcion], NULL, AccionesCliente, (void*)(clientesEnRecepcion-1));
         pthread_mutex_unlock(&semaforoColaClientes);
 
     }else{
@@ -200,10 +200,8 @@ void AccionesCliente (void* nuevoCliente ){
         //meter todo esto a un metodo directamente para poder pasarlo 
         //10% va a la maquina directamente
         maquinaAccion(nuevoCliente);
-        
     }else{
         colaAccion(nuevoCliente);
-
     }
     //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
 }
@@ -220,32 +218,42 @@ void maquinaAccion(void* nuevoCliente){
             MaquinasCheckIn[maquinaAOcupar]=true;
             pthread_mutex_unlock(&semaforoMaquinas);
             sleep(6);
-            meQuedo=2; // no se queda ya esta atendido
-            //iria al ascensor (falta implementar todo eso) si puede se escribiria el log y lo eliminamos
 
+            pthread_mutex_lock(&semaforoMaquinas);
+            MaquinasCheckIn[maquinaAOcupar]=true;
+            pthread_mutex_unlock(&semaforoMaquinas);
+            
+            //alAscensor(nuevoCliente)
         }else{
 
             pthread_mutex_unlock(&semaforoMaquinas);
             sleep(3);
             meQuedo=calculaAleatorios(1,2);
             //1 se queda 2 se cansa de esperar
+
         }
 
     }while(meQuedo==1); //repite si se queda si no pasa a buscar cola
+
+    colaAccion(nuevoCliente);
 }
 
+
+
 void colaAccion(void *nuevoCliente){
+
     pthread_mutex_lock(&semaforoColaClientes);
-        if(nuevoCliente.atendido=1){
+
+        if(arrayClientes[(int *)nuevoCliente]->atendido==1){
+
             pthread_mutex_unlock(&semaforoColaClientes);
 
-            while(nuevoCliente.atendido==1){
+            while(arrayClientes[(int *)nuevoCliente]->atendido==1){
                 //Cuando termine el recepcionista este valor se establecera en 2
                 sleep(2);
                 //comprueba si ha acabado cada 2 secs
             }
-            //va a coger los ascensores (logs y demas)
-
+            //AccionAscensor(nuevoCliente);
 
         }else{
             pthread_mutex_unlock(&semaforoColaClientes);
@@ -255,11 +263,18 @@ void colaAccion(void *nuevoCliente){
                 maquinaAccion(nuevoCliente)
                 return;
             }else if(comportamiento<=30){
+                pthread_mutex_lock(&semaforoColaClientes);
+                borrarCliente((int *)nuevoCliente);
+                pthread_mutex_unlock(&semaforoColaClientes);
                 pthread_cancel(gettid());
             }else{
                 int pierdoTurnoPorBano =calculaAleatorios(1,20);
                 if(pierdoTurnoPorBano==1){
                     //pierde el turno por ir al banyo se enfada y se va
+                    pthread_mutex_lock(&semaforoColaClientes);
+                    borrarCliente((int *)nuevoCliente);
+                    pthread_mutex_unlock(&semaforoColaClientes);
+
                     pthread_cancel(gettid());
                 }
             }
@@ -277,54 +292,63 @@ void alAscensor(){
 
 }
 
+void borrarCliente(int posCliente){
+    for(int i=posCliente; i<this.clientesEnRecepcion-1; i++){
+        arrayClientes[i]=arrayClientes[i+1];
+    }
+    arrayClientes[clientesEnRecepcion-1]=null;
+}
 
-void AccionesRecepcionista(void *tipoDeRecepcionista){
-    (char *) tipoDeRecepcionista;
-    do{
-        pthread_mutex_lock(&semaforoColaClientes);
-        int clienteAtendiendo=-1;
-        for (int i=0;i<clientesEnRecepcion; i++){
-            if(colaClientes[i].atendido==0){
-                clienteAtendiendo=i;
+
+void AccionesRecepcionista(void *recepcionistaStruct){
+    while(true){
+        do{
+            pthread_mutex_lock(&semaforoColaClientes);
+            int clienteAtendiendo=-1;
+            for (int i=0;i<clientesEnRecepcion; i++){
+                if(colaClientes[i]->atendido==0&&colaClientes[i]->tipo==((struct recepcionistaStruct *)recepcionista)->tipoAtencion){
+                    clienteAtendiendo=i;
+                }
+            }
+            if (clienteAtendiendo==-1){
+                pthread_mutex_unlock(&semaforoColaClientes);
+                sleep(1);
+            }
+        }while(clienteAtendiendo==-1);
+        colaClientes[clienteAtendiendo]->atendido=1;
+        pthread_mutex_unlock(&semaforoColaClientes);
+
+        int tipoAtencion= calculaAleatorios(1,100);
+        if(tipoAtencion<=80){
+            //Todo perfecto
+            int tiempoEspera=calculaAleatorios(1,4);
+            sleep(tiempoEspera);
+            // Implementar Se mandaria al ascensor al cliente 
+            //AlAscensor(clienteAtendiendo)
+        }else if(tipo Atencion<=90){
+            //Algun problema
+            int tiempoEspera=calculaAleatorios(2,6);
+            sleep(tiempoEspera);
+            //AlAscensor(clienteAtendiendo)
+        }else{
+            //No esta vacunado
+            int tiempoEspera=calculaAleatorios(6,10);
+            sleep(tiempoEspera);
+            borrarCliente(clienteAtendiendo);
+            pthread_cancel(arrayHilosClientes[clienteAtendiendo]);
+            //Implementar Le echamos
+        }
+        colaClientes[clienteAtendiendo]->atendido=2;
+        ((struct recepcionistaStruct *)recepcionista)->contadorDeClientes++;
+        //Implementar Eliminamos cliente de la cola
+        if(((struct recepcionistaStruct *)recepcionista)->tipoAtencion=="DEF"){
+            if(((struct recepcionistaStruct *)recepcionista)->contadorDeClientes==5){
+                sleep(5);
             }
         }
-        if (clienteAtendiendo==-1){
-             pthread_mutex_unlock(&semaforoColaClientes);
-            sleep(1);
-        }
-    }while(clienteAtendiendo==-1);
-    colaClientes[clienteAtendiendo].atendido=1;
-    pthread_mutex_unlock(&semaforoColaClientes);
-
-    int tipoAtencion= calculaAleatorios(1,100);
-    if(tipoAtencion<=80){
-        //Todo perfecto
-        int tiempoEspera=calculaAleatorios(1,4);
-        sleep(tiempoEspera);
-        // Implementar Se mandaria al ascensor al cliente 
-    }else if(tipo Atencion<=90){
-        //Algun problema
-        int tiempoEspera=calculaAleatorios(2,6);
-        sleep(tiempoEspera);
-        colaClientes[clienteAtendido].ascensor=1;
-    }else{
-        //No esta vacunado
-        int tiempoEspera=calculaAleatorios(6,10);
-        sleep(tiempoEspera);
-        //Implementar Le echamos
     }
-    colaClientes[clienteAtendiendo]=2;
-    contadorDeClientes++
-    //Implementar Eliminamos cliente de la cola
-    if(tipoDeRecepcionista=="DEF"){
-        //if(contadorDeClientes==5){
-        // sleep(5);
-        //}
-    }
-
-
-
 }
+
 
 int maquinaLibre(){
     for(int i=0; i<nMaquinas; i++){
