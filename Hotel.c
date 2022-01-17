@@ -68,7 +68,7 @@ void handle_terminar(int sig) {
 int main(int argc,char *argv[]){
     
 	/*Declaración de los hilos de los recepcionistas*/
-	pthread_t recepcionista1, recepcionista2, recepcionista3;
+	pthread_t recepcionista_1, recepcionista_2, recepcionista_3;
 
 	/*Comprobación de que el número de argumentos introducidos es el correcto*/
     if(argc!=3){
@@ -131,18 +131,18 @@ int main(int argc,char *argv[]){
 
 	/*Creación de los hilos de los recepcionistas*/
     //atributos en principio a NULL (por defecto)
-	if (pthread_create (&recepcionista1, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) { //Comprobación de que el hilo se crea correctamente
+	if (pthread_create (&recepcionista_1, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) { //Comprobación de que el hilo se crea correctamente
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
 	}
-	if (pthread_create (&recepcionista2, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+	if (pthread_create (&recepcionista_2, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
 		
 	}
-	if (pthread_create (&recepcionista3, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+	if (pthread_create (&recepcionista_3, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
@@ -150,9 +150,9 @@ int main(int argc,char *argv[]){
 	}
 
 	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
-	pthread_join(recepcionista1, void **retval/*Valor de retorno, por defecto = NULL*/); 
-	pthread_join(recepcionista2, void **retval/*Valor de retorno, por defecto = NULL*/);
-	pthread_join(recepcionista3, void **retval/*Valor de retorno, por defecto = NULL*/);
+	pthread_join(recepcionista_1, void **retval/*Valor de retorno, por defecto = NULL*/); 
+	pthread_join(recepcionista_2, void **retval/*Valor de retorno, por defecto = NULL*/);
+	pthread_join(recepcionista_3, void **retval/*Valor de retorno, por defecto = NULL*/);
 
 	/*Esperar por senales de forma infinita*/
 	while(1) { //Imagino
@@ -294,6 +294,16 @@ void colaAccion(void *nuevoCliente){
 
 
 void alAscensor(){
+    int clientesAscensor;
+    int clientesHabitacion;
+    int tiempo;
+    clientesAscensor = clientesAtendidios*0.30;
+    clientesHabitacion = clientesAtendidos*0.70;
+    while(!ascensorEnMovimiento){
+        tiempo = rand()%(6-3+1)+3;
+        sleep(tiempo);
+    }
+
 
     while(!ascensorEnPlanta){
         sleep(3);
