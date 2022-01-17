@@ -38,29 +38,12 @@ bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
 
-/*Manejadora del cliente normal*/
-void handle_cNormal(int sig){
-	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
-		perror("Error en la señal signal");
-	
-		exit(-1);
-	}
-}
-
-/*Manejadora del cliente VIP*/
-void handle_cVIP(int sig){
-	if (signal(SIGUSR2, handle_cVIP) == SIG_ERR) {
-		perror("Error en la señal signal");
-	
-		exit(-1);
-	}
-}
-
 /*Manejadora para la terminación del programa*/
-void handle_terminar(int sig) {
-	if (signal(SIGINT, handle_terminar) == SIG_ERR) {
-		perror("Error en la señal signal");
+void finalizaPrograma(int sig) {
+	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
+		perror("Error en signal");
 	
+		//Finaliza el programa correctamente
 		exit(-1);
 	}
 }
@@ -88,19 +71,19 @@ int main(int argc,char *argv[]){
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
 	/*Enmascaración de señales*/
-	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
-		perror("Error en la señal signal");
+	if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+		perror("Error en signal");
 	
 		exit(-1);
 	}
 
-	if (signal(SIGUSR2, handle_cVIP) == SIG_ERR) {
-		perror("Error en la señal signal");
+	if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+		perror("Error en signal");
 	
 		exit(-1);
 	}
 
-	if (signal(SIGINT, handle_terminar) == SIG_ERR) {
+	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
 		perror("Error en la señal signal");
 	
 		exit(-1);
@@ -116,18 +99,14 @@ int main(int argc,char *argv[]){
 	if (pthread_mutex_init(&semaforoMaquinas, NULL) != 0) exit (-1);
 
 	/*Creación de clientes básicos y VIP*/
-	for( int i =0; i < nClientes; i++){
+	/*for( int i =0; i < nClientes; i++){
 			
-    }
+    }*/
 
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 
     int clientesEnRecepcion = 0;
-
-    /**
-    *   Los clientes seran asignados como vip o normales aleatoriamente
-    */
 
 	/*Creación de los hilos de los recepcionistas*/
     //atributos en principio a NULL (por defecto)
@@ -179,13 +158,36 @@ void nuevoCliente(int signum){
         itoa(clientesEnRecepcion, numeroEnId, 10);
         nuevoCliente->id=strcat("cliente_",numeroEnId);
 
-        if(signum==SIGUSR1){
+        /*if(signum==SIGUSR1){
             nuevoCliente->tipo="DEF"; //Default
         }else if(signum==SIGUSR2){
             nuevoCliente->tipo="VIP"; //VIP
         }else if(signum == SIG_ERR) {
             perror("\nError en la llamada a la senal\n");  
-        }
+        }*/
+
+		/*Indicación de si es cliente VIP o no por medio de señales*/
+        switch(signum) {
+			case SIGUSR1:
+				if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+					perror("Error en signal");
+     
+                    exit(-1);
+				}
+ 
+                nuevoCliente.tipo = "DEF"; //Default
+ 
+                break;
+			case SIGUSR2:
+				if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+					perror("Error en signal");
+     
+                    exit(-1);
+                }
+ 
+                nuevoCliente.tipo = "VIP"; //VIP
+		}
+
 
         nuevoCliente->atendido=0;
         nuevoCliente->ascensor=0;
