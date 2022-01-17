@@ -81,6 +81,9 @@ int main(int argc,char *argv[]){
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
+	arrayClientes = (int *)malloc(nClientes * sizeof(int));
+	recepcionistas = (int *)malloc(/*recepcionistas??*/ * sizeof(int));
+    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
 	
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
@@ -103,13 +106,20 @@ int main(int argc,char *argv[]){
 		exit(-1);
 	}
 
+	/*INICIALIZACIÓN DE LOS RECURSOS*/
 
-	/*Indica los clientes que son básicos y VIP??*/
+
+	/*Inicialización de los semáforos*/
+
+	if (pthread_mutex_init(&semaforoColaClientes, NULL/*Por defecto*/) != 0) exit (-1);
+	if (pthread_mutex_init(&semaforoAscensor, NULL) != 0) exit (-1);
+	if (pthread_mutex_init(&semaforoMaquinas, NULL) != 0) exit (-1);
+
+	/*Creación de clientes básicos y VIP*/
 	for( int i =0; i < nClientes; i++){
 			
     }
 
-    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 
@@ -139,7 +149,7 @@ int main(int argc,char *argv[]){
 
 	}
 
-	/*Función join para que el main espera por la ejecución del hilo*/
+	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
 	pthread_join(recepcionista1, void **retval/*Valor de retorno, por defecto = NULL*/); 
 	pthread_join(recepcionista2, void **retval/*Valor de retorno, por defecto = NULL*/);
 	pthread_join(recepcionista3, void **retval/*Valor de retorno, por defecto = NULL*/);
@@ -151,8 +161,8 @@ int main(int argc,char *argv[]){
 	
 	/*Se libera la memoria de los arrays dinámicos*/
 	free(arrayClientes);
-	free(arrayMaquinas);
 	free(MaquinasCheckIn);
+	free(recepcionistas);
 
     exit 0;
 }
