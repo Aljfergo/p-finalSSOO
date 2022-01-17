@@ -35,14 +35,11 @@ struct recepcionista{
     char tipo [3];
 }
 
-<<<<<<< HEAD
-=======
 pthread_t *arrayHilosClientes;
 bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
 
->>>>>>> 355fb65ce842793f2cf8c81994939813da67c3f2
 /*Manejadora del cliente normal*/
 void handle_cNormal(int sig){
 	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
@@ -86,12 +83,9 @@ int main(int argc,char *argv[]){
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
-<<<<<<< HEAD
 	arrayClientes = (int *)malloc(nClientes * sizeof(int));
 	recepcionistas = (int *)malloc(/*recepcionistas??*/ * sizeof(int));
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
-=======
->>>>>>> 355fb65ce842793f2cf8c81994939813da67c3f2
 	
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
