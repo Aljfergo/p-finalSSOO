@@ -170,7 +170,7 @@ void nuevoCliente(int signum){
                     exit(-1);
 				}
  
-                nuevoCliente.tipo = "DEF"; //Default
+                nuevoCliente -> tipo = "DEF"; //Default
  
                 break;
 			case SIGUSR2:
@@ -180,7 +180,7 @@ void nuevoCliente(int signum){
                     exit(-1);
                 }
  
-                nuevoCliente.tipo = "VIP"; //VIP
+                nuevoCliente -> tipo = "VIP"; //VIP
 		}
 
 
