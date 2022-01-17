@@ -19,7 +19,9 @@ pthread_mutex_t semaforoMaquinas;
 int nClientes;
 int nMaquinas;
 int *arrayClientes;
-int *arrayMaquinas;
+int *recepcionistas;
+bool *MaquinasCheckIn;
+bool ascensorEnPlanta;
 struct cliente{
     char id;
     bool atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
@@ -32,10 +34,6 @@ struct recepcionista{
     int clientesAtendidos;
     char tipo [3];
 }
-
-bool ascensorEnPlanta;
-bool *MaquinasCheckIn;
-int *recepcionistas;
 
 /*Manejadora del cliente normal*/
 void handle_cNormal(int sig){
@@ -81,7 +79,8 @@ int main(int argc,char *argv[]){
     nMaquinas=atoi(argv[2]);
 
 	arrayClientes = (int *)malloc(nClientes * sizeof(int));
-	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
+	recepcionistas = (int *)malloc(/*recepcionistas??*/ * sizeof(int));
+    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
 	
 	/*Enmascaración de señales*/
 	if (signal(SIGUSR1, handle_cNormal) == SIG_ERR) {
@@ -102,13 +101,20 @@ int main(int argc,char *argv[]){
 		exit(-1);
 	}
 
+	/*INICIALIZACIÓN DE LOS RECURSOS*/
 
-	/*Indica los clientes que son básicos y VIP??*/
+
+	/*Inicialización de los semáforos*/
+
+	if (pthread_mutex_init(&semaforoColaClientes, NULL/*Por defecto*/) != 0) exit (-1);
+	if (pthread_mutex_init(&semaforoAscensor, NULL) != 0) exit (-1);
+	if (pthread_mutex_init(&semaforoMaquinas, NULL) != 0) exit (-1);
+
+	/*Creación de clientes básicos y VIP*/
 	for( int i =0; i < nClientes; i++){
 			
     }
 
-    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 
@@ -138,7 +144,7 @@ int main(int argc,char *argv[]){
 
 	}
 
-	/*Función join para que el main espera por la ejecución del hilo*/
+	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
 	pthread_join(recepcionista1, void **retval/*Valor de retorno, por defecto = NULL*/); 
 	pthread_join(recepcionista2, void **retval/*Valor de retorno, por defecto = NULL*/);
 	pthread_join(recepcionista3, void **retval/*Valor de retorno, por defecto = NULL*/);
@@ -150,8 +156,8 @@ int main(int argc,char *argv[]){
 	
 	/*Se libera la memoria de los arrays dinámicos*/
 	free(arrayClientes);
-	free(arrayMaquinas);
 	free(MaquinasCheckIn);
+	free(recepcionistas);
 
     exit 0;
 }
