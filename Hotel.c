@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/syscall.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -9,40 +10,10 @@
 #include <time.h>
 #include <linux/unistd.h>
 #include <pthread.h>
-
-//HAY QUE DEPURAR Y ORDENAR EL CÓDIGO, AL MENOS QUE HAYA BUEN DISEÑO
+#include <errno.h>
 
 #define ascensorMAX 6.0
 #define recepcionMAX 20.0
-
-FILE *logFile;
-pthread_mutex_t semaforoColaClientes;
-pthread_mutex_t semaforoAscensor;
-int ocupacionAscensor;
-pthread_mutex_t semaforoMaquinas;
-int nClientes;
-int nMaquinas;
-int clientesEnRecepcion;
-struct cliente *colaClientes;
-
-struct cliente{
-    char *id;
-    int atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
-    char *tipo;
-    int  ascensor;
-};
-
-struct recepcionista{
-    char *id;
-    int clientesAtendidos;
-    char *tipo;
-};
-
-pthread_t *arrayHilosClientes;
-bool ascensorEnPlanta;
-bool *MaquinasCheckIn;
-struct cliente *arrayClientesEnAscensor;
-int estado;
 
 void nuevoClienteCrear(int signum);
 void AccionesCliente (void* nuevoCliente );
@@ -57,8 +28,35 @@ pid_t gettid(void);
 void writeLogMessage(char *id, char *msg);
 int calculaAleatorios(int min, int max);
 
+FILE *logFile;
 
+int ocupacionAscensor;
+int nClientes;
+int nMaquinas;
+int clientesEnRecepcion;
+int estado;
+bool ascensorEnPlanta;
+bool *MaquinasCheckIn;
+pthread_mutex_t semaforoColaClientes;
+pthread_mutex_t semaforoAscensor;
+pthread_mutex_t semaforoMaquinas;
+pthread_t *arrayHilosClientes;
 
+struct cliente *arrayClientesEnAscensor;
+struct cliente *colaClientes;
+
+struct cliente{
+    char *id;
+    int atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
+    char *tipo;
+    int  ascensor;
+};
+
+struct recepcionista{
+    char *id;
+    int clientesAtendidos;
+    char *tipo;
+};
 
 int main(int argc,char *argv[]){
     
@@ -80,10 +78,9 @@ int main(int argc,char *argv[]){
 	
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
     arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
-	
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(*arrayHilosClientes));
 
-	/*Enmascaracion de seniaales*/
+	/*Enmascaracion de seniales*/
 	if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
 		perror("Error en signal");
 	
@@ -115,6 +112,7 @@ int main(int argc,char *argv[]){
 	/*Lista de clientes id 0, atendido 0, tipo 0, serologia 0*/
     //Inicializar todo a 0?
 
+	printf("depurando\n");
 	/*Lista de recepcionistas*/
 	struct recepcionista *recepcionista1;
     recepcionista1->id="recepcionista_1";
@@ -131,6 +129,7 @@ int main(int argc,char *argv[]){
     recepcionista3->clientesAtendidos=0;
     recepcionista3->tipo="VIP";
 
+	printf("depurando\n");
 	/*Maquinas de check in (ponerlas todas como libres)*/
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
@@ -140,9 +139,7 @@ int main(int argc,char *argv[]){
 
 	/*Variables relativas al ascensor*/
     int ocupacionAscensor = 0;
-    bool ascensorEnPlanta; //se inicializa por defecto en false(?)
-
-	/*Variables condicion*/
+    bool ascensorEnPlanta; //se inicializa por defecto en false
 
 	/*Creacion de los hilos de los recepcionistas*/
 	if (pthread_create (&recepcionista11, NULL, AccionesRecepcionista, (void *) recepcionista1) != 0) { //Comprobacion de que el hilo se crea correctamente
@@ -179,7 +176,7 @@ int main(int argc,char *argv[]){
 	free(colaClientes);
 	free(MaquinasCheckIn);
 	
-	return 0; //El main termina con return 0 no un exit
+	return 0;
 }
 
 void nuevoClienteCrear(int signum){
@@ -193,14 +190,6 @@ void nuevoClienteCrear(int signum){
         char numeroEnId [3];
         sprintf(numeroEnId,"%d", clientesEnRecepcion);
         nuevoCliente.id=strcat("cliente_",numeroEnId);
-
-        /*if(signum==SIGUSR1){
-            nuevoCliente->tipo="DEF"; //Default
-        }else if(signum==SIGUSR2){
-            nuevoCliente->tipo="VIP"; //VIP
-        }else if(signum == SIG_ERR) {
-            perror("\nError en la llamada a la senal\n");  
-        }*/
 
 		/*Indicacion de si es cliente VIP o no por medio de seniaales*/
         switch(signum) {
@@ -223,7 +212,6 @@ void nuevoClienteCrear(int signum){
  
                 nuevoCliente.tipo = "VIP"; //VIP
 		}
-
 
         nuevoCliente.atendido=0;
         nuevoCliente.ascensor=0;
@@ -256,9 +244,9 @@ void AccionesCliente (void* nuevoCliente ){
 
 void maquinaAccion(int nuevoCliente){
     int meQuedo;
+
     do{
         pthread_mutex_lock(&semaforoMaquinas);
-        
         
         int maquinaAOcupar=maquinaLibre();
 
@@ -388,14 +376,14 @@ void AccionesRecepcionista(void *recepcionistaStruct){
                 pthread_mutex_unlock(&semaforoColaClientes);
                 sleep(1);
             }
-        }while(clienteAtendiendo==-1);
+        } while (clienteAtendiendo==-1);
         int * pos = &clienteAtendiendo;
         colaClientes[clienteAtendiendo].atendido=1;
         pthread_mutex_unlock(&semaforoColaClientes);
 
         int tipoAtencion= calculaAleatorios(1,100);
+
         if(tipoAtencion<=80){
-            //Todo perfecto
             int tiempoEspera=calculaAleatorios(1,4);
             sleep(tiempoEspera);
             // Implementar Se mandaria al ascensor al cliente 
