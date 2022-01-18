@@ -112,7 +112,6 @@ int main(int argc,char *argv[]){
 	/*Lista de clientes id 0, atendido 0, tipo 0, serologia 0*/
     //Inicializar todo a 0?
 
-	printf("depurando\n");
 	/*Lista de recepcionistas*/
 	struct recepcionista *recepcionista1;
     recepcionista1->id="recepcionista_1";
@@ -129,7 +128,6 @@ int main(int argc,char *argv[]){
     recepcionista3->clientesAtendidos=0;
     recepcionista3->tipo="VIP";
 
-	printf("depurando\n");
 	/*Maquinas de check in (ponerlas todas como libres)*/
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
