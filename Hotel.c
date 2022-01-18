@@ -39,7 +39,7 @@ bool *MaquinasCheckIn;
 int *recepcionistas;
 struct cliente *arrayClientesEnAscensor;
 
-void nuevoCliente(int signum);
+void nuevoClienteCrear(int signum);
 void AccionesCliente (void* nuevoCliente );
 void maquinaAccion(void* nuevoCliente);
 void colaAccion(void *nuevoCliente);
@@ -57,20 +57,20 @@ int calculaAleatorios(int min, int max);
 
 int main(int argc,char *argv[]){
     
-	/*Declaración de los hilos de los recepcionistas*/
+	/*Declaracion de los hilos de los recepcionistas*/
 	pthread_t recepcionista1, recepcionista2, recepcionista3;
 
-	/*Comprobación de que el número de argumentos introducidos es el correcto*/
+	/*Comprobacion de que el numero de argumentos introducidos es el correcto*/
     if(argc!=3){
-
-        printf("Se ha introducido incorrectamente el numero de parámetros");
+        printf("Se ha introducido incorrectamente el numero de parametros");
+        
         exit(-1);  
     }
 	
-	/*Impresión del pid del proceso para enviar las señales*/
+	/*Impresion del pid del proceso para enviar las seniaales*/
 	printf("\nPID = %d\n", getpid());
 
-	/*Paso de los argumentos a int y creación de arrays dinámicos*/
+	/*Paso de los argumentos a int y creacion de arrays dinamicos*/
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
@@ -82,7 +82,7 @@ int main(int argc,char *argv[]){
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
 
-	/*Enmascaración de señales*/
+	/*Enmascaracion de seniaales*/
 	if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
 		perror("Error en signal");
 	
@@ -96,13 +96,13 @@ int main(int argc,char *argv[]){
 	}
 
 	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
-		perror("Error en la señal signal");
+		perror("Error en la seniaal signal");
 	
 		exit(-1);
 	}
 
-	/*INICIALIZACIÓN DE LOS RECURSOS*/
-	/*Inicialización de los semáforos*/
+	/*INICIALIZACIoN DE LOS RECURSOS*/
+	/*Inicializacion de los semaforos*/
 
 	if (pthread_mutex_init(&semaforoColaClientes, NULL) != 0) exit (-1);
 	if (pthread_mutex_init(&semaforoAscensor, NULL) != 0) exit (-1);
@@ -111,7 +111,7 @@ int main(int argc,char *argv[]){
 	/*Contador de clientes*/
     int clientesEnRecepcion = 0;
 
-	/*Lista de clientes id 0, atendido 0, tipo 0, serología 0*/
+	/*Lista de clientes id 0, atendido 0, tipo 0, serologia 0*/
     //Inicializar todo a 0?
 
 	/*Lista de recepcionistas*/
@@ -122,17 +122,17 @@ int main(int argc,char *argv[]){
     itoa(clientesEnRecepcion, numeroEnId, 10);
     nuevoCliente->id=strcat("cliente_",numeroEnId);*/
 	
-	struct recepcionista *recepcionista_1
+	struct recepcionista *recepcionista_1;
     char id [16];
     int clientesAtendidos;
     char tipo [3];
 
-	struct recepcionista *recepcionista_2
+	struct recepcionista *recepcionista_2;
     char id [16];
     int clientesAtendidos;
     char tipo [3];
 
-	struct recepcionista *recepcionista_3
+	struct recepcionista *recepcionista_3;
     char id [16];
     int clientesAtendidos;
     char tipo [3];
@@ -146,31 +146,31 @@ int main(int argc,char *argv[]){
     int ocupacionAscensor = 0;
     bool ascensorEnPlanta; //se inicializa por defecto en false(?)
 
-	/*Variables condición*/
+	/*Variables condicion*/
 
-	/*Creación de los hilos de los recepcionistas*/
-    //Método -> AccionesRecepcionista
-    //Argumento del método -> (void *recepcionistaStruct){
+	/*Creacion de los hilos de los recepcionistas*/
+    //Metodo -> AccionesRecepcionista
+    //Argumento del metodo -> (void *recepcionistaStruct){
     
-	if (pthread_create (&recepcionista1, NULL, AccionesRecepcionista, recepcionista_1) != 0) { //Comprobación de que el hilo se crea correctamente
-		perror("Error en la creación del hilo");
+	if (pthread_create (&recepcionista1, NULL, AccionesRecepcionista, recepcionista_1) != 0) { //Comprobacion de que el hilo se crea correctamente
+		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 	}
 	if (pthread_create (&recepcionista2, NULL, AccionesRecepcionista, recepcionista_2) != 0) {
-		perror("Error en la creación del hilo");
+		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 		
 	}
 	if (pthread_create (&recepcionista3, NULL, AccionesRecepcionista, recepcionista_3) != 0) {
-		perror("Error en la creación del hilo");
+		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 
 	}
 
-	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
+	/*Funcion join para que el main espera por la ejecucion del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
 	pthread_join(recepcionista1, NULL); //Por defecto el valor de retorno es NULL 
 	pthread_join(recepcionista2, NULL); //No estoy seguro de si AccionesRecepcionista retorna algo (es un void)
 	pthread_join(recepcionista3, NULL);
@@ -180,7 +180,7 @@ int main(int argc,char *argv[]){
 
 	}
 	
-	/*Se libera la memoria de los arrays dinámicos*/
+	/*Se libera la memoria de los arrays dinamicos*/
 	free(colaClientes);
 	free(MaquinasCheckIn);
 	free(recepcionistas);
@@ -209,7 +209,7 @@ void nuevoClienteCrear(int signum){
             perror("\nError en la llamada a la senal\n");  
         }*/
 
-		/*Indicación de si es cliente VIP o no por medio de señales*/
+		/*Indicacion de si es cliente VIP o no por medio de seniaales*/
         switch(signum) {
 			case SIGUSR1:
 				if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
@@ -446,14 +446,14 @@ int maquinaLibre(){
     return -1;
 }
 
-/*Manejadora para la terminación del programa*/
+/*Manejadora para la terminacion del programa*/
 void finalizaPrograma(int sig) {
 	if (signal(SIGINT, finalizaPrograma) == SIG_ERR) {
 		perror("Error en signal");
 	
 		exit(-1);
 	}
-	//Al finalizar debe terminar de atender a todos los clientes en cola, pero ya no podrán subir en el ascensor
+	//Al finalizar debe terminar de atender a todos los clientes en cola, pero ya no podran subir en el ascensor
 	
 	printf("\nHasta luego...\n");
 
