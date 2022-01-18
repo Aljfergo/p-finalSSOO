@@ -7,6 +7,9 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <time.h>
+#include <linux/unistd.h>
+#include <pthread.h>
+
 
 #define ascensorMAX 6.0
 #define recepcionMAX 20.0
@@ -18,8 +21,9 @@ int ocupacionAscensor;
 pthread_mutex_t semaforoMaquinas;
 int nClientes;
 int nMaquinas;
+int clientesEnRecepcion;
 struct cliente *colaClientes;
-int *arrayMaquinas;
+
 struct cliente{
     char *id;
     int atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
@@ -31,20 +35,19 @@ struct recepcionista{
     char *id;
     int clientesAtendidos;
     char *tipo;
-}
+};
 
 pthread_t *arrayHilosClientes;
 bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
-int *recepcionistas;
 struct cliente *arrayClientesEnAscensor;
 
 void nuevoClienteCrear(int signum);
 void AccionesCliente (void* nuevoCliente );
-void maquinaAccion(void* nuevoCliente);
-void colaAccion(void *nuevoCliente);
+void maquinaAccion(int nuevoCliente);
+void colaAccion(int nuevoCliente);
 void alAscensor(void *nuevoCliente);
-void borrarCliente(int *posCliente);
+void borrarCliente(int posCliente);
 void AccionesRecepcionista(void *recepcionistaStruct);
 int maquinaLibre();
 void finalizaPrograma(int sig);
@@ -58,8 +61,8 @@ int calculaAleatorios(int min, int max);
 int main(int argc,char *argv[]){
     
 	/*Declaracion de los hilos de los recepcionistas*/
-	pthread_t recepcionista1, recepcionista2, recepcionista3;
-
+	pthread_t recepcionista11, recepcionista22, recepcionista33;
+    printf("funciono");
 	/*Comprobacion de que el numero de argumentos introducidos es el correcto*/
     if(argc!=3){
         printf("Se ha introducido incorrectamente el numero de parametros");
@@ -75,12 +78,12 @@ int main(int argc,char *argv[]){
     nMaquinas=atoi(argv[2]);
 
 	//File * fopen (const char *HotelLogs, const char 'w');
-	recepcionistas = (int *)malloc(recepcionistas * sizeof(int));
-    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
-    colaClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
 	
-	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
-	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
+    MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
+    arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
+	
+	
+	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(*arrayHilosClientes));
 
 	/*Enmascaracion de seniaales*/
 	if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
@@ -122,20 +125,20 @@ int main(int argc,char *argv[]){
     itoa(clientesEnRecepcion, numeroEnId, 10);
     nuevoCliente->id=strcat("cliente_",numeroEnId);*/
 	
-	struct recepcionista *recepcionista_1;
-    char id [16];
-    int clientesAtendidos;
-    char tipo [3];
+	struct recepcionista *recepcionista1;
+    recepcionista1->id="recepcionista_1";
+    recepcionista1->clientesAtendidos=0;
+    recepcionista1->tipo="DEF";
 
-	struct recepcionista *recepcionista_2;
-    char id [16];
-    int clientesAtendidos;
-    char tipo [3];
+	struct recepcionista *recepcionista2;
+    recepcionista2->id="recepcionista_2";
+    recepcionista2->clientesAtendidos=0;
+    recepcionista2->tipo="DEF";
 
-	struct recepcionista *recepcionista_3;
-    char id [16];
-    int clientesAtendidos;
-    char tipo [3];
+	struct recepcionista *recepcionista3;
+    recepcionista3->id="recepcionista_3";
+    recepcionista3->clientesAtendidos=0;
+    recepcionista3->tipo="VIP";
 
 	/*Maquinas de check in (ponerlas todas como libres)*/
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
@@ -152,18 +155,18 @@ int main(int argc,char *argv[]){
     //Metodo -> AccionesRecepcionista
     //Argumento del metodo -> (void *recepcionistaStruct){
     
-	if (pthread_create (&recepcionista1, NULL, AccionesRecepcionista, recepcionista_1) != 0) { //Comprobacion de que el hilo se crea correctamente
+	if (pthread_create (&recepcionista11, NULL, AccionesRecepcionista, (void *) recepcionista1) != 0) { //Comprobacion de que el hilo se crea correctamente
 		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 	}
-	if (pthread_create (&recepcionista2, NULL, AccionesRecepcionista, recepcionista_2) != 0) {
+	if (pthread_create (&recepcionista22, NULL, AccionesRecepcionista, (void *)recepcionista2) != 0) {
 		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 		
 	}
-	if (pthread_create (&recepcionista3, NULL, AccionesRecepcionista, recepcionista_3) != 0) {
+	if (pthread_create (&recepcionista33, NULL, AccionesRecepcionista, (void *)recepcionista3) != 0) {
 		perror("Error en la creacion del hilo");
 		
 		exit (-1);
@@ -171,19 +174,19 @@ int main(int argc,char *argv[]){
 	}
 
 	/*Funcion join para que el main espera por la ejecucion del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
-	pthread_join(recepcionista1, NULL); //Por defecto el valor de retorno es NULL 
-	pthread_join(recepcionista2, NULL); //No estoy seguro de si AccionesRecepcionista retorna algo (es un void)
-	pthread_join(recepcionista3, NULL);
+	pthread_join(recepcionista11, NULL); //Por defecto el valor de retorno es NULL 
+	pthread_join(recepcionista22, NULL); //No estoy seguro de si AccionesRecepcionista retorna algo (es un void)
+	pthread_join(recepcionista33, NULL);
 
 	/*Esperar por senales de forma infinita*/
 	while(1) { //Imagino
-
+        sleep(1);
 	}
 	
 	/*Se libera la memoria de los arrays dinamicos*/
 	free(colaClientes);
 	free(MaquinasCheckIn);
-	free(recepcionistas);
+	
 
     //exit 0;
 	return 0; //El main termina con return 0 no un exit
@@ -195,11 +198,11 @@ void nuevoClienteCrear(int signum){
     
     if(clientesEnRecepcion<recepcionMAX){
 
-        struct cliente *nuevoCliente;
+        struct cliente nuevoCliente;
         clientesEnRecepcion++;
         char numeroEnId [3];
-        itoa(clientesEnRecepcion, numeroEnId, 10);
-        nuevoCliente->id=strcat("cliente_",numeroEnId);
+        sprintf(numeroEnId,"%d", clientesEnRecepcion);
+        nuevoCliente.id=strcat("cliente_",numeroEnId);
 
         /*if(signum==SIGUSR1){
             nuevoCliente->tipo="DEF"; //Default
@@ -218,7 +221,7 @@ void nuevoClienteCrear(int signum){
                     exit(-1);
 				}
  
-                nuevoCliente -> tipo = "DEF"; //Default
+                nuevoCliente.tipo = "DEF"; //Default
  
                 break;
 			case SIGUSR2:
@@ -228,13 +231,13 @@ void nuevoClienteCrear(int signum){
                     exit(-1);
                 }
  
-                nuevoCliente -> tipo = "VIP"; //VIP
+                nuevoCliente.tipo = "VIP"; //VIP
 		}
 
 
-        nuevoCliente->atendido=0;
-        nuevoCliente->ascensor=0;
-
+        nuevoCliente.atendido=0;
+        nuevoCliente.ascensor=0;
+        
         colaClientes[clientesEnRecepcion-1]=nuevoCliente;
         pthread_t hiloCliente;
         arrayHilosClientes[clientesEnRecepcion-1]=hiloCliente;
@@ -249,19 +252,19 @@ void nuevoClienteCrear(int signum){
 }
 
 void AccionesCliente (void* nuevoCliente ){
-
+    (int *) nuevoCliente;
     int maquinaDirecta=calculaAleatorios(1,100);
-    if(accion<=10){
+    if(maquinaDirecta<=10){
         //meter todo esto a un metodo directamente para poder pasarlo 
         //10% va a la maquina directamente
-        maquinaAccion(nuevoCliente);
+        maquinaAccion((int )nuevoCliente);
     }else{
-        colaAccion(nuevoCliente);
+        colaAccion((int )nuevoCliente);
     }
     //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
 }
 
-void maquinaAccion(void* nuevoCliente){
+void maquinaAccion(int nuevoCliente){
     int meQuedo;
     do{
         pthread_mutex_lock(&semaforoMaquinas);
@@ -296,15 +299,15 @@ void maquinaAccion(void* nuevoCliente){
 
 
 
-void colaAccion(void *nuevoCliente){
+void colaAccion(int nuevoCliente){
 
     pthread_mutex_lock(&semaforoColaClientes);
-
-        if(colaClientes[(int *)nuevoCliente]->atendido==1){
+        (int *)nuevoCliente;
+        if(colaClientes[(nuevoCliente)].atendido==1){
 
             pthread_mutex_unlock(&semaforoColaClientes);
 
-            while(colaClientes[(int *)nuevoCliente]->atendido==1){
+            while(colaClientes[(nuevoCliente)].atendido==1){
                 //Cuando termine el recepcionista este valor se establecera en 2
                 sleep(2);
                 //comprueba si ha acabado cada 2 secs
@@ -320,7 +323,7 @@ void colaAccion(void *nuevoCliente){
                 return;
             }else if(comportamiento<=30){
                 pthread_mutex_lock(&semaforoColaClientes);
-                borrarCliente((int *)nuevoCliente);
+                borrarCliente((int )nuevoCliente);
                 pthread_mutex_unlock(&semaforoColaClientes);
                 pthread_cancel(gettid());
             }else{
@@ -328,7 +331,7 @@ void colaAccion(void *nuevoCliente){
                 if(pierdoTurnoPorBano==1){
                     //pierde el turno por ir al banyo se enfada y se va
                     pthread_mutex_lock(&semaforoColaClientes);
-                    borrarCliente((int *)nuevoCliente);
+                    borrarCliente((int )nuevoCliente);
                     pthread_mutex_unlock(&semaforoColaClientes);
 
                     pthread_cancel(gettid());
@@ -345,7 +348,7 @@ void alAscensor(void *nuevoCliente){
     int cojoAscensor= calculaAleatorios(1,10);
     if(cojoAscensor<=3){
 
-        borrarCliente((int *)nuevoCliente);
+        borrarCliente((int )nuevoCliente);
         pthread_mutex_unlock(&colaClientes);
         pthread_cancel(gettid());
 
@@ -357,9 +360,9 @@ void alAscensor(void *nuevoCliente){
         sleep(3);
     }
 
-    if(clientesAscensor<6){
-        clientesAscensor++;
-        if(clientesAscensor==6){
+    if(ocupacionAscensor<6){
+        ocupacionAscensor++;
+        if(ocupacionAscensor==6){
             int tiempo= calculaAleatorios(3,6);
             sleep(tiempo);
             
@@ -370,29 +373,24 @@ void alAscensor(void *nuevoCliente){
             //esperamos
         }
     }
-
-
-    
-    while(!ascensorEnMovimiento){
-        
-    }
 }
 
-void borrarCliente(void *posCliente){
-    for(int i=(int *)posCliente; i<(clientesEnRecepcion-1); i++){
+void borrarCliente(int posCliente){
+    for(int i=posCliente; i<(clientesEnRecepcion-1); i++){
         colaClientes[i]=colaClientes[i+1];
     }
-    colaClientes[clientesEnRecepcion-1]=null;
+    struct cliente structvacia;
+    colaClientes[clientesEnRecepcion-1]=structvacia;
 }
 
 
-void AccionesRecepcionista(void *recepcionista){
+void AccionesRecepcionista(void *recepcionistaStruct){
         int clienteAtendiendo=-1;
         do{
             pthread_mutex_lock(&semaforoColaClientes);
             
             for (int i=0;i<clientesEnRecepcion; i++){
-                if(colaClientes[i]->atendido==0&&colaClientes[i]->tipo==((struct recepcionistaStruct *)recepcionista)->tipoAtencion){
+                if(colaClientes[i].atendido==0&&colaClientes[i].tipo==((struct recepcionista *)recepcionistaStruct)->tipo){
                     clienteAtendiendo=i;
                 }
             }
@@ -421,15 +419,15 @@ void AccionesRecepcionista(void *recepcionista){
             //No esta vacunado
             int tiempoEspera=calculaAleatorios(6,10);
             sleep(tiempoEspera);
-            borrarCliente(pos);
+            borrarCliente((int) pos);
             pthread_cancel(arrayHilosClientes[clienteAtendiendo]);
             //Implementar Le echamos
         }
         colaClientes[clienteAtendiendo].atendido=2;
-        ((struct recepcionistaStruct *)recepcionista)->contadorDeClientes++;
+        ((struct recepcionista *)recepcionistaStruct)->clientesAtendidos++;
         //Implementar Eliminamos cliente de la cola
-        if(((struct recepcionistaStruct *)recepcionista)->tipoAtencion=="DEF"){
-            if(((struct recepcionistaStruct *)recepcionista)->contadorDeClientes==5){
+        if(((struct recepcionista *)recepcionistaStruct)->tipo=="DEF"){
+            if(((struct recepcionista *)recepcionistaStruct)->clientesAtendidos==5){
                 sleep(5);
             }
         }
