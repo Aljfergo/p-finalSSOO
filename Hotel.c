@@ -41,7 +41,7 @@ int *recepcionistas;
 int main(int argc,char *argv[]){
     
 	/*Declaración de los hilos de los recepcionistas*/
-	pthread_t recepcionista_1, recepcionista_2, recepcionista_3;
+	pthread_t recepcionista1, recepcionista2, recepcionista3;
 
 	/*Comprobación de que el número de argumentos introducidos es el correcto*/
     if(argc!=3){
@@ -84,38 +84,68 @@ int main(int argc,char *argv[]){
 	}
 
 	/*INICIALIZACIÓN DE LOS RECURSOS*/
-
-
 	/*Inicialización de los semáforos*/
 
-	if (pthread_mutex_init(&semaforoColaClientes, NULL/*Por defecto*/) != 0) exit (-1);
+	if (pthread_mutex_init(&semaforoColaClientes, NULL) != 0) exit (-1);
 	if (pthread_mutex_init(&semaforoAscensor, NULL) != 0) exit (-1);
 	if (pthread_mutex_init(&semaforoMaquinas, NULL) != 0) exit (-1);
 
-	/*Creación de clientes básicos y VIP*/
-	/*for( int i =0; i < nClientes; i++){
-			
-    }*/
-
-    //Se inicializan por defecto todas las maquinas a false (no ocupadas)
-
-
+	/*Contador de clientes*/
     int clientesEnRecepcion = 0;
 
+	/*Lista de clientes id 0, atendido 0, tipo 0, serología 0*/
+    //Inicializar todo a 0?
+
+	/*Lista de recepcionistas*/
+
+    /*struct cliente *nuevoCliente;
+    clientesEnRecepcion++;
+    char numeroEnId [3];
+    itoa(clientesEnRecepcion, numeroEnId, 10);
+    nuevoCliente->id=strcat("cliente_",numeroEnId);*/
+	
+	struct recepcionista *recepcionista_1
+    char id [16];
+    int clientesAtendidos;
+    char tipo [3];
+
+	struct recepcionista *recepcionista_2
+    char id [16];
+    int clientesAtendidos;
+    char tipo [3];
+
+	struct recepcionista *recepcionista_3
+    char id [16];
+    int clientesAtendidos;
+    char tipo [3];
+
+	/*Maquinas de check in (ponerlas todas como libres)*/
+    //Se inicializan por defecto todas las maquinas a false (no ocupadas)
+
+	/*Fichero de log*/
+
+	/*Variables relativas al ascensor*/
+    int ocupacionAscensor = 0;
+    bool ascensorEnPlanta; //se inicializa por defecto en false(?)
+
+	/*Variables condición*/
+
 	/*Creación de los hilos de los recepcionistas*/
-    //atributos en principio a NULL (por defecto)
-	if (pthread_create (&recepcionista_1, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) { //Comprobación de que el hilo se crea correctamente
+    //Método -> AccionesRecepcionista
+    //Argumento del método -> (void *recepcionistaStruct){
+    
+	if (pthread_create (&recepcionista1, NULL, AccionesRecepcionista, recepcionista_1) != 0) { //Comprobación de que el hilo se crea correctamente
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
 	}
-	if (pthread_create (&recepcionista_2, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+	if (pthread_create (&recepcionista2, NULL, AccionesRecepcionista, recepcionista_2) != 0) {
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
 		
 	}
-	if (pthread_create (&recepcionista_3, NULL, /*Función que realiza (método)*/, /*Argumento del método*/) != 0) {
+	if (pthread_create (&recepcionista3, NULL, AccionesRecepcionista, recepcionista_3) != 0) {
 		perror("Error en la creación del hilo");
 		
 		exit (-1);
@@ -123,9 +153,9 @@ int main(int argc,char *argv[]){
 	}
 
 	/*Función join para que el main espera por la ejecución del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
-	pthread_join(recepcionista_1, void **retval/*Valor de retorno, por defecto = NULL*/); //Comprobar que tiene que devolver 
-	pthread_join(recepcionista_2, void **retval/*Valor de retorno, por defecto = NULL*/);
-	pthread_join(recepcionista_3, void **retval/*Valor de retorno, por defecto = NULL*/);
+	pthread_join(recepcionista1, NULL); //Por defecto el valor de retorno es NULL 
+	pthread_join(recepcionista2, NULL); //No estoy seguro de si AccionesRecepcionista retorna algo (es un void)
+	pthread_join(recepcionista3, NULL);
 
 	/*Esperar por senales de forma infinita*/
 	while(1) { //Imagino
@@ -383,6 +413,8 @@ void finalizaPrograma(int sig) {
 	
 		exit(-1);
 	}
+	//Al finalizar debe terminar de atender a todos los clientes en cola, pero ya no podrán subir en el ascensor
+	
 	printf("\nHasta luego...\n");
 
 	exit(0);
