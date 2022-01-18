@@ -18,19 +18,19 @@ int ocupacionAscensor;
 pthread_mutex_t semaforoMaquinas;
 int nClientes;
 int nMaquinas;
-struct cliente *arrayClientes;
+struct cliente *colaClientes;
 int *arrayMaquinas;
 struct cliente{
-    char id [10];
-    bool atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
-    char tipo [3];
+    char *id;
+    int atendido; //0 no 1 esta siendo atendido 2 ya fue atendido
+    char *tipo;
     int  ascensor;
 };
 
 struct recepcionista{
-    char id [16];
+    char *id;
     int clientesAtendidos;
-    char tipo [3];
+    char *tipo;
 }
 
 pthread_t *arrayHilosClientes;
@@ -38,6 +38,22 @@ bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
 struct cliente *arrayClientesEnAscensor;
+
+void nuevoCliente(int signum);
+void AccionesCliente (void* nuevoCliente );
+void maquinaAccion(void* nuevoCliente);
+void colaAccion(void *nuevoCliente);
+void alAscensor(void *nuevoCliente);
+void borrarCliente(int *posCliente);
+void AccionesRecepcionista(void *recepcionistaStruct);
+int maquinaLibre();
+void finalizaPrograma(int sig);
+pid_t gettid(void);
+void writeLogMessage(char *id, char *msg);
+int calculaAleatorios(int min, int max);
+
+
+
 
 int main(int argc,char *argv[]){
     
@@ -58,22 +74,22 @@ int main(int argc,char *argv[]){
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
 
-	arrayClientes = (int *)malloc(nClientes * sizeof(int)); //Está declarado como "struct cliente"
+	//File * fopen (const char *HotelLogs, const char 'w');
 	recepcionistas = (int *)malloc(recepcionistas * sizeof(int));
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
-    arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
+    colaClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
 	
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
 
 	/*Enmascaración de señales*/
-	if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+	if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
 		perror("Error en signal");
 	
 		exit(-1);
 	}
 
-	if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+	if (signal(SIGUSR2, nuevoClienteCrear) == SIG_ERR) {
 		perror("Error en signal");
 	
 		exit(-1);
@@ -135,7 +151,7 @@ int main(int argc,char *argv[]){
 	}
 	
 	/*Se libera la memoria de los arrays dinámicos*/
-	free(arrayClientes);
+	free(colaClientes);
 	free(MaquinasCheckIn);
 	free(recepcionistas);
 
@@ -143,7 +159,7 @@ int main(int argc,char *argv[]){
 	return 0; //El main termina con return 0 no un exit
 }
 
-void nuevoCliente(int signum){
+void nuevoClienteCrear(int signum){
 
     pthread_mutex_lock(&semaforoColaClientes);
     
@@ -166,7 +182,7 @@ void nuevoCliente(int signum){
 		/*Indicación de si es cliente VIP o no por medio de señales*/
         switch(signum) {
 			case SIGUSR1:
-				if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+				if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
 					perror("Error en signal");
      
                     exit(-1);
@@ -176,7 +192,7 @@ void nuevoCliente(int signum){
  
                 break;
 			case SIGUSR2:
-				if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+				if (signal(SIGUSR2, nuevoClienteCrear) == SIG_ERR) {
 					perror("Error en signal");
      
                     exit(-1);
@@ -216,9 +232,10 @@ void AccionesCliente (void* nuevoCliente ){
 }
 
 void maquinaAccion(void* nuevoCliente){
+    int meQuedo;
     do{
         pthread_mutex_lock(&semaforoMaquinas);
-        int meQuedo;
+        
         
         int maquinaAOcupar=maquinaLibre();
 
@@ -253,11 +270,11 @@ void colaAccion(void *nuevoCliente){
 
     pthread_mutex_lock(&semaforoColaClientes);
 
-        if(arrayClientes[(int *)nuevoCliente]->atendido==1){
+        if(colaClientes[(int *)nuevoCliente]->atendido==1){
 
             pthread_mutex_unlock(&semaforoColaClientes);
 
-            while(arrayClientes[(int *)nuevoCliente]->atendido==1){
+            while(colaClientes[(int *)nuevoCliente]->atendido==1){
                 //Cuando termine el recepcionista este valor se establecera en 2
                 sleep(2);
                 //comprueba si ha acabado cada 2 secs
@@ -269,7 +286,7 @@ void colaAccion(void *nuevoCliente){
 
             int comportamiento = calculaAleatorios(1,100);
             if(comportamiento<=20){
-                maquinaAccion(nuevoCliente)
+                maquinaAccion(nuevoCliente);
                 return;
             }else if(comportamiento<=30){
                 pthread_mutex_lock(&semaforoColaClientes);
@@ -298,7 +315,7 @@ void alAscensor(void *nuevoCliente){
     int cojoAscensor= calculaAleatorios(1,10);
     if(cojoAscensor<=3){
 
-        borrarCliente(nuevoCliente);
+        borrarCliente((int *)nuevoCliente);
         pthread_mutex_unlock(&colaClientes);
         pthread_cancel(gettid());
 
@@ -314,7 +331,7 @@ void alAscensor(void *nuevoCliente){
         clientesAscensor++;
         if(clientesAscensor==6){
             int tiempo= calculaAleatorios(3,6);
-            sleep(tiempo)
+            sleep(tiempo);
             
             //log
 
@@ -331,19 +348,19 @@ void alAscensor(void *nuevoCliente){
     }
 }
 
-void borrarCliente(int *posCliente){
-    for(int i=(int *)posCliente; i<this.clientesEnRecepcion-1; i++){
-        arrayClientes[i]=arrayClientes[i+1];
+void borrarCliente(void *posCliente){
+    for(int i=(int *)posCliente; i<(clientesEnRecepcion-1); i++){
+        colaClientes[i]=colaClientes[i+1];
     }
-    arrayClientes[clientesEnRecepcion-1]=null;
+    colaClientes[clientesEnRecepcion-1]=null;
 }
 
 
-void AccionesRecepcionista(void *recepcionistaStruct){
-    while(true){
+void AccionesRecepcionista(void *recepcionista){
+        int clienteAtendiendo=-1;
         do{
             pthread_mutex_lock(&semaforoColaClientes);
-            int clienteAtendiendo=-1;
+            
             for (int i=0;i<clientesEnRecepcion; i++){
                 if(colaClientes[i]->atendido==0&&colaClientes[i]->tipo==((struct recepcionistaStruct *)recepcionista)->tipoAtencion){
                     clienteAtendiendo=i;
@@ -354,7 +371,8 @@ void AccionesRecepcionista(void *recepcionistaStruct){
                 sleep(1);
             }
         }while(clienteAtendiendo==-1);
-        colaClientes[clienteAtendiendo]->atendido=1;
+        int * pos = &clienteAtendiendo;
+        colaClientes[clienteAtendiendo].atendido=1;
         pthread_mutex_unlock(&semaforoColaClientes);
 
         int tipoAtencion= calculaAleatorios(1,100);
@@ -364,7 +382,7 @@ void AccionesRecepcionista(void *recepcionistaStruct){
             sleep(tiempoEspera);
             // Implementar Se mandaria al ascensor al cliente 
             //AlAscensor(clienteAtendiendo)
-        }else if(tipo Atencion<=90){
+        }else if(tipoAtencion<=90){
             //Algun problema
             int tiempoEspera=calculaAleatorios(2,6);
             sleep(tiempoEspera);
@@ -373,11 +391,11 @@ void AccionesRecepcionista(void *recepcionistaStruct){
             //No esta vacunado
             int tiempoEspera=calculaAleatorios(6,10);
             sleep(tiempoEspera);
-            borrarCliente(clienteAtendiendo);
+            borrarCliente(pos);
             pthread_cancel(arrayHilosClientes[clienteAtendiendo]);
             //Implementar Le echamos
         }
-        colaClientes[clienteAtendiendo]->atendido=2;
+        colaClientes[clienteAtendiendo].atendido=2;
         ((struct recepcionistaStruct *)recepcionista)->contadorDeClientes++;
         //Implementar Eliminamos cliente de la cola
         if(((struct recepcionistaStruct *)recepcionista)->tipoAtencion=="DEF"){
@@ -385,13 +403,13 @@ void AccionesRecepcionista(void *recepcionistaStruct){
                 sleep(5);
             }
         }
-    }
+    
 }
 
 
 int maquinaLibre(){
     for(int i=0; i<nMaquinas; i++){
-        if(MaquinasCheckIn[]==false){
+        if(MaquinasCheckIn[i]==false){
             return i;
         }
     }
@@ -426,7 +444,7 @@ void writeLogMessage(char *id, char *msg) {
     char stnow[25];
     strftime(stnow, 25, "%d/%m/%y %H:%M:%S", tlocal);
     // Escribimos en el log
-    logFile = fopen(logFileName, "a");
+    logFile = fopen("logFileName", "a");
     fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
     fclose(logFile);
 
