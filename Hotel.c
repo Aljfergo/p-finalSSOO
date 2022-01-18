@@ -124,21 +124,35 @@ int main(int argc,char *argv[]){
     char numeroEnId [3];
     itoa(clientesEnRecepcion, numeroEnId, 10);
     nuevoCliente->id=strcat("cliente_",numeroEnId);*/
+
 	
 	struct recepcionista *recepcionista1;
-    recepcionista1->id="recepcionista_1";
+    
     recepcionista1->clientesAtendidos=0;
+
+    recepcionista1->tipo=(char *) malloc (3*sizeof(char));
     recepcionista1->tipo="DEF";
 
+    recepcionista1->id=(char *) malloc (16*sizeof(char));
+    recepcionista1->id="recepcionista_1";
+
 	struct recepcionista *recepcionista2;
-    recepcionista2->id="recepcionista_2";
+    
     recepcionista2->clientesAtendidos=0;
+    recepcionista2->tipo=(char *) malloc (3*sizeof(char));
     recepcionista2->tipo="DEF";
 
+    recepcionista2->id=(char *) malloc (16*sizeof(char));
+    recepcionista2->id="recepcionista_2";
+
 	struct recepcionista *recepcionista3;
-    recepcionista3->id="recepcionista_3";
+    
     recepcionista3->clientesAtendidos=0;
+    recepcionista3->tipo=(char *) malloc (3*sizeof(char));
     recepcionista3->tipo="VIP";
+
+    recepcionista3->id=(char *) malloc (16*sizeof(char));
+    recepcionista3->id="recepcionista_3";
 
 	/*Maquinas de check in (ponerlas todas como libres)*/
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
