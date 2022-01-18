@@ -37,6 +37,7 @@ pthread_t *arrayHilosClientes;
 bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 int *recepcionistas;
+struct cliente *arrayClientesEnAscensor;
 
 int main(int argc,char *argv[]){
     
@@ -60,6 +61,7 @@ int main(int argc,char *argv[]){
 	arrayClientes = (int *)malloc(nClientes * sizeof(int)); //Está declarado como "struct cliente"
 	recepcionistas = (int *)malloc(recepcionistas * sizeof(int));
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
+    arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
 	
 	arrayMaquinas = (int *)malloc(nMaquinas * sizeof(int));
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(pthread_t));
@@ -290,27 +292,47 @@ void colaAccion(void *nuevoCliente){
 }
 
 
-void alAscensor(){
-    int clientesAscensor;
-    int clientesHabitacion;
-    int tiempo;
-    clientesAscensor = clientesAtendidios*0.30;
-    clientesHabitacion = clientesAtendidos*0.70;
-    while(!ascensorEnMovimiento){
-        tiempo = rand()%(6-3+1)+3;
-        sleep(tiempo);
+void alAscensor(void *nuevoCliente){
+    
+    pthread_mutex_unlock(&colaClientes);
+    int cojoAscensor= calculaAleatorios(1,10);
+    if(cojoAscensor<=3){
+
+        borrarCliente(nuevoCliente);
+        pthread_mutex_unlock(&colaClientes);
+        pthread_cancel(gettid());
+
     }
+    pthread_mutex_unlock(&colaClientes);
 
-
+    pthread_mutex_lock(&semaforoAscensor);
     while(!ascensorEnPlanta){
         sleep(3);
     }
 
+    if(clientesAscensor<6){
+        clientesAscensor++;
+        if(clientesAscensor==6){
+            int tiempo= calculaAleatorios(3,6);
+            sleep(tiempo)
+            
+            //log
 
+        }else{
+            //log
+            //esperamos
+        }
+    }
+
+
+    
+    while(!ascensorEnMovimiento){
+        
+    }
 }
 
-void borrarCliente(int posCliente){
-    for(int i=posCliente; i<this.clientesEnRecepcion-1; i++){
+void borrarCliente(int *posCliente){
+    for(int i=(int *)posCliente; i<this.clientesEnRecepcion-1; i++){
         arrayClientes[i]=arrayClientes[i+1];
     }
     arrayClientes[clientesEnRecepcion-1]=null;
