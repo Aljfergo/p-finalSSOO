@@ -10,6 +10,7 @@
 #include <linux/unistd.h>
 #include <pthread.h>
 
+//HAY QUE DEPURAR Y ORDENAR EL CÓDIGO, AL MENOS QUE HAYA BUEN DISEÑO
 
 #define ascensorMAX 6.0
 #define recepcionMAX 20.0
@@ -41,6 +42,7 @@ pthread_t *arrayHilosClientes;
 bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 struct cliente *arrayClientesEnAscensor;
+int estado;
 
 void nuevoClienteCrear(int signum);
 void AccionesCliente (void* nuevoCliente );
@@ -62,7 +64,6 @@ int main(int argc,char *argv[]){
     
 	/*Declaracion de los hilos de los recepcionistas*/
 	pthread_t recepcionista11, recepcionista22, recepcionista33;
-    printf("funciono");
 	/*Comprobacion de que el numero de argumentos introducidos es el correcto*/
     if(argc!=3){
         printf("Se ha introducido incorrectamente el numero de parametros");
@@ -76,12 +77,9 @@ int main(int argc,char *argv[]){
 	/*Paso de los argumentos a int y creacion de arrays dinamicos*/
     nClientes=atoi(argv[1]);
     nMaquinas=atoi(argv[2]);
-
-	//File * fopen (const char *HotelLogs, const char 'w');
 	
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
     arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
-	
 	
 	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(*arrayHilosClientes));
 
@@ -105,8 +103,8 @@ int main(int argc,char *argv[]){
 	}
 
 	/*INICIALIZACIoN DE LOS RECURSOS*/
-	/*Inicializacion de los semaforos*/
 
+	/*Inicializacion de los semaforos*/
 	if (pthread_mutex_init(&semaforoColaClientes, NULL) != 0) exit (-1);
 	if (pthread_mutex_init(&semaforoAscensor, NULL) != 0) exit (-1);
 	if (pthread_mutex_init(&semaforoMaquinas, NULL) != 0) exit (-1);
@@ -118,13 +116,6 @@ int main(int argc,char *argv[]){
     //Inicializar todo a 0?
 
 	/*Lista de recepcionistas*/
-
-    /*struct cliente *nuevoCliente;
-    clientesEnRecepcion++;
-    char numeroEnId [3];
-    itoa(clientesEnRecepcion, numeroEnId, 10);
-    nuevoCliente->id=strcat("cliente_",numeroEnId);*/
-	
 	struct recepcionista *recepcionista1;
     recepcionista1->id="recepcionista_1";
     recepcionista1->clientesAtendidos=0;
@@ -144,6 +135,8 @@ int main(int argc,char *argv[]){
     //Se inicializan por defecto todas las maquinas a false (no ocupadas)
 
 	/*Fichero de log*/
+	logFile = fopen("registroLogs.log", "wt");
+	fclose(logFile);
 
 	/*Variables relativas al ascensor*/
     int ocupacionAscensor = 0;
@@ -152,20 +145,19 @@ int main(int argc,char *argv[]){
 	/*Variables condicion*/
 
 	/*Creacion de los hilos de los recepcionistas*/
-    //Metodo -> AccionesRecepcionista
-    //Argumento del metodo -> (void *recepcionistaStruct){
-    
 	if (pthread_create (&recepcionista11, NULL, AccionesRecepcionista, (void *) recepcionista1) != 0) { //Comprobacion de que el hilo se crea correctamente
 		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 	}
+
 	if (pthread_create (&recepcionista22, NULL, AccionesRecepcionista, (void *)recepcionista2) != 0) {
 		perror("Error en la creacion del hilo");
 		
 		exit (-1);
 		
 	}
+
 	if (pthread_create (&recepcionista33, NULL, AccionesRecepcionista, (void *)recepcionista3) != 0) {
 		perror("Error en la creacion del hilo");
 		
@@ -173,22 +165,20 @@ int main(int argc,char *argv[]){
 
 	}
 
-	/*Funcion join para que el main espera por la ejecucion del hilo*/ //NO ESTOY SEGURO DE QUE TODOS NECESITEN SER JOINADOS
+	/*Funcion join para que el main espera por la ejecucion del hilo*/
 	pthread_join(recepcionista11, NULL); //Por defecto el valor de retorno es NULL 
-	pthread_join(recepcionista22, NULL); //No estoy seguro de si AccionesRecepcionista retorna algo (es un void)
+	pthread_join(recepcionista22, NULL); 
 	pthread_join(recepcionista33, NULL);
 
 	/*Esperar por senales de forma infinita*/
-	while(1) { //Imagino
-        sleep(1);
+	while(1) {
+	  wait(&estado);
 	}
 	
 	/*Se libera la memoria de los arrays dinamicos*/
 	free(colaClientes);
 	free(MaquinasCheckIn);
 	
-
-    //exit 0;
 	return 0; //El main termina con return 0 no un exit
 }
 
