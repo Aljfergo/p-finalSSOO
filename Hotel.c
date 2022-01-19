@@ -34,7 +34,6 @@ int ocupacionAscensor;
 int nClientes;
 int nMaquinas;
 int clientesEnRecepcion;
-int estado;
 bool ascensorEnPlanta;
 bool *MaquinasCheckIn;
 pthread_mutex_t semaforoColaClientes;
@@ -77,8 +76,9 @@ int main(int argc,char *argv[]){
     nMaquinas=atoi(argv[2]);
 	
     MaquinasCheckIn= (bool *) malloc (nMaquinas * sizeof (bool));
-    arrayClientesEnAscensor = (struct cliente *)malloc(6 * sizeof(struct cliente *));
-	arrayHilosClientes = (pthread_t *)malloc (nClientes * sizeof(*arrayHilosClientes));
+    arrayClientesEnAscensor = (struct cliente *) malloc (6 * sizeof(struct cliente *));
+	arrayHilosClientes = (pthread_t *) malloc (nClientes * sizeof(*arrayHilosClientes));
+	colaClientes = (struct cliente *) malloc (nClientes * sizeof(struct cliente *)); //Pongo nClientes para probar
 
 	/*Enmascaracion de seniales*/
 	if (signal(SIGUSR1, nuevoClienteCrear) == SIG_ERR) {
@@ -167,13 +167,15 @@ int main(int argc,char *argv[]){
 
 	/*Esperar por senales de forma infinita*/
 	while(1) {
-	  wait(&estado);
+		pause(1); 
 	}
 	
 	/*Se libera la memoria de los arrays dinamicos*/
 	free(colaClientes);
 	free(MaquinasCheckIn);
-	
+	free(arrayHilosClientes);
+	free(arrayClientesEnAscensor);
+
 	return 0;
 }
 
@@ -229,6 +231,9 @@ void nuevoClienteCrear(int signum){
 
 void AccionesCliente (void* nuevoCliente ){
     (int *) nuevoCliente;
+
+    //nuevoCliente= (int *) malloc (nClientes * sizeof (int)); -> reserva dinámica de memoria
+
     int maquinaDirecta=calculaAleatorios(1,100);
     if(maquinaDirecta<=10){
         //meter todo esto a un metodo directamente para poder pasarlo 
@@ -238,6 +243,8 @@ void AccionesCliente (void* nuevoCliente ){
         colaAccion((int )nuevoCliente);
     }
     //Ascensor, una vez atendidos 30% el resto van directamente a su habitacion
+
+	//free(nuevoCliente); -> liberación de memoria
 }
 
 void maquinaAccion(int nuevoCliente){
